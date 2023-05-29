@@ -1,43 +1,72 @@
-#include <iostream>
-#include <vector>
+#include <bits/stdc++.h>
 #include <omp.h>
-
 using namespace std;
+
+class Graph
+{
+public:
+    map<int, bool> visited;
+    map<int, list<int>> adjacencyList;
+
+    // function to add an edge to the graph
+    void addEdge(int v, int w);
+
+    // BFS traversal of the vertices reachable from v
+    void breadthFirstTraversal(int v);
+};
+
+void Graph::addEdge(int v, int w)
+{
+    adjacencyList[v].push_back(w); // Add w to v's list.
+}
+
+void Graph::breadthFirstTraversal(int v)
+{
+    queue<int> queue;
+    visited[v] = true;
+    queue.push(v);
+
+    while (!queue.empty())
+    {
+        v = queue.front(); // Get the front element of the queue
+        cout << v << " "; // Print the current vertex
+        queue.pop(); // Remove the front element from the queue
+
+        #pragma omp parallel
+        for (auto it = adjacencyList[v].begin(); it != adjacencyList[v].end(); ++it)
+        {
+            if (!visited[*it]) // Check if the neighbor is not visited
+            {
+                visited[*it] = true; // Mark the neighbor as visited
+                queue.push(*it); // Add the neighbor to the queue
+            }
+        }
+    }
+}
 
 int main()
 {
-    int size = 10;
-    vector<int> arr(size);
-    omp_set_num_threads(10);
-    // Initialize the array
-    for (int i = 0; i < size; i++)
+    omp_set_num_threads(4);
+    int startVertex, edges;
+    Graph graph;
+
+    cout << "Enter the number of edges: ";
+    cin >> edges;
+
+    cout << "Enter the Vertex (format: vertex1 vertex2):" << endl;
+    for (int i = 0; i < edges; i++)
     {
-        arr[i] = i + 1;
+        int v, w;
+        cin >> v >> w;
+        graph.addEdge(v, w); // Add an edge to the graph
     }
 
-    int min_val = arr[0];
-    int max_val = arr[0];
-    int sum_val = 0;
+    cout << "Enter the vertex to start the BFS traversal with: ";
+    cin >> startVertex;
 
-    double startTime = omp_get_wtime();
-    #pragma omp parallel for reduction(min:min_val) reduction(max:max_val) reduction(+:sum_val)
-    for (int i = 0; i < size; i++)
-    {
-        printf("Thread ID = %d, i = %d\n", omp_get_thread_num(), i);
-
-        min_val = min(min_val, arr[i]);
-        max_val = max(max_val, arr[i]);
-        sum_val += arr[i];
-    }
-
-    double avg_val = static_cast<double>(sum_val) / size;
-    double endTime = omp_get_wtime();
-
-    cout << "Minimum: " << min_val << endl;
-    cout << "Maximum: " << max_val << endl;
-    cout << "Sum: " << sum_val << endl;
-    cout << "Average: " << avg_val << endl;
-    cout << "Total Time Taken: " << endTime - startTime << " seconds" << endl;
+    cout << "\nBreadth First Traversal: \n";
+    graph.breadthFirstTraversal(startVertex); // Perform breadth-first traversal
+    cout << endl;
 
     return 0;
 }
